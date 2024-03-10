@@ -2,7 +2,7 @@ const { DataTypes } = require("sequelize");
 const db = require("../db");
 
 const Like = db.define("like", {
-    id: { 
+    likeId: { 
         type: DataTypes.INTEGER, 
         primaryKey: true,
         autoIncrement: true 
