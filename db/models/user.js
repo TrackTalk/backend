@@ -1,7 +1,8 @@
 const { DataTypes } = require("sequelize");
 const db = require("../db");
+const Track = require("./track");
 
-const User = db.define("user", {
+const User = db.define("users", {
     userId: { 
         type: DataTypes.INTEGER, 
         primaryKey: true,
@@ -34,7 +35,10 @@ const User = db.define("user", {
     },
     currentlyListeningId: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        references: {
+            model: Track,
+            key: "trackId"
+        }
     },
     spotifyProfileId: {
         type: DataTypes.STRING,
