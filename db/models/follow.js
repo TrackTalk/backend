@@ -13,14 +13,16 @@ const Follow = db.define("follows", {
         references: {
             model: User,
             key: "userId"
-        }
+        },
+        unique: 'follower_following_unique'
     },
     followingId: {
         type: DataTypes.INTEGER,
         references: {
             model: User,
             key: "userId" 
-        }
+        },
+        unique: 'follower_following_unique'
     }
 });
 

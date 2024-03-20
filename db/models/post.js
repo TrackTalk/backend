@@ -34,7 +34,7 @@ const Post = db.define("posts", {
         allowNull: false
     },
     photoUrl: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: true,
     },
     likesCount: {

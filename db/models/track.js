@@ -20,11 +20,11 @@ const Track = db.define("tracks", {
         allowNull: false
     },
     url: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     coverPicUrl: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false 
     }
 });
