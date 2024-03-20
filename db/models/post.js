@@ -12,6 +12,10 @@ const Post = db.define("posts", {
     userId: {
         type: DataTypes.INTEGER,
         allowNull: false,
+        references: {
+            model: User,
+            key: "userId"
+        }
     },
     trackId: {
         type: DataTypes.INTEGER,
