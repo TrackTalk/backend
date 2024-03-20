@@ -15,6 +15,7 @@ const Comment = db.define("comments", {
     },
     userId: {
         type: DataTypes.INTEGER,
+        allowNull: false,
         references: { 
             model: User,
             key: "userId"
@@ -22,10 +23,15 @@ const Comment = db.define("comments", {
     },
     postId: {
         type: DataTypes.INTEGER,
+        allowNull: false,
         references: {
             model: Post,
             key: "postId"
         }
+    }, 
+    parentId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
     }
 });
 

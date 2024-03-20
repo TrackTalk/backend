@@ -29,18 +29,28 @@ const User = db.define("users", {
         type: DataTypes.STRING,
         allowNull: true,
     },
-    loginMthd: {
-        type: DataTypes.STRING,
+    spotifyLogin: {
+        type: DataTypes.BOOLEAN,
         allowNull: false,
+    },
+    email:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: { isEmail: true}
     },
     currentlyListeningId: {
         type: DataTypes.INTEGER,
+        allowNull: true,
         references: {
             model: Track,
             key: "trackId"
         }
     },
     spotifyProfileId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    spotifyPlaylistId:{
         type: DataTypes.STRING,
         allowNull: true,
     }
