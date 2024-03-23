@@ -38,6 +38,28 @@ router.get("/:userId", async (req, res, next) => {
     }
 });
 
+router.put("/:userId/update", async (req, res, next) => {
+    try{
+        const {userId} = req.params;
+        const updateData = req.body;
+        if (!userId) return res.status(400).json({ error: "User ID must be provided" });
+
+        const updatedData  = await User.update(updateData, {
+            where: { id: userId },
+            returning: true,
+        });
+
+        if(updatedData){
+            res.status(200).json(updatedData[1][0]);
+        }else{
+            res.status(500).json("Failed to update user");
+        }
+
+    } catch (error) {
+        next(error);
+    }
+})
+
 
 router.get("/:userId/allFollowers", async (req, res, next) => {
     try{
