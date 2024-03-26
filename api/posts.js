@@ -108,6 +108,44 @@ router.post("/create", async (req, res, next) => {
     }
 });
 
+router.post("/:postId/like/:userId", async (req, res, next) => {
+    try{
+        const { postId, userId } = req.params;
+        //let created
+        if (!postId || !userId) return res.status(400).json("PostID and UserID must be provided");
+
+        const [likedPost, created] = await Like.findOrCreate({
+            where: {
+                postId,
+                userId
+            },
+            defaults: {
+                userId,
+                postId
+            }
+        });
+
+        if (created) {
+            // Increment the likesCount of the Post if the like was created
+            const post = await Post.findByPk(postId);
+            await post.update({
+                likesCount: post.likesCount + 1
+            });
+        } else {
+            throw new Error("The like was not created.");
+        }
+
+        // Get the updated number of likes for this post after adding one
+        const updatedPost = await Post.findByPk(postId);
+
+        return res.status(200).json(updatedPost);
+
+        // Get the updated number of likes for this post after adding one
+    } catch (error) {
+        next (error)
+    }
+})
+
 router.put("/:postId/update", async (req, res, next) => {
     try {
         const {postId} = req.params;
