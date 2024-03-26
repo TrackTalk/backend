@@ -112,7 +112,7 @@ router.put("/:postId/update", async (req, res, next) => {
     try {
         const {postId} = req.params;
         const updateData = req.body;
-        if( !postId || !updateData ) return res.status(400).json( {"Error": "Missing required fields"} ); 
+        if( !postId || !updateData ) return res.status(400).json( {error: "Missing required fields"} ); 
         
         const updatedPost = await Post.update(updateData, {
             where: {id: postId},
@@ -122,7 +122,7 @@ router.put("/:postId/update", async (req, res, next) => {
         if (updatedPost){
             res.status(200).json(updatedPost[1][0]);
         }else{
-            res.status(404).json({"Error":"No post found with this id for updating"});
+            res.status(404).json({error:"No post found with this id for updating"});
         }
 
     } catch (error) {
@@ -150,5 +150,41 @@ router.delete("/:postId/delete", async (req, res, next) => {
         next (error);
     }
 });
+
+router.delete("/:postId/removeLike/:userId", async (req, res, next) => {
+    try {
+        const  {postId, userId} = req.params;
+        if (!userId || !postId)  return res.status(400).json({ error: "User Id and Post Id must be provided"}) ;
+
+        const  removedLike = await Like.destroyAndReturn({
+            where: {
+                userId: userId, 
+                postId: postId
+            },
+        });
+        if (removedLike)  {
+            const updatedPost = await Post.findOne({
+                where: { 
+                    postId: postId
+                },
+            });
+            if(updatedPost){
+                const updatedPostReducedLike = await updatedPost.update({
+                    likeCount: updatedPost.likeCount -1
+                });
+                res.status(200).json(updatedPostReducedLike);
+            } else {
+                res.status(404).send(`Post with postId ${postId} not found`);
+            }
+        } else {
+            res.status(404).send (`Like not found for postId ${postId} and userId ${userId}`);
+        }
+
+    } catch (error) {
+        next (error)
+    }
+});
+
+
 
 module.exports = router;
