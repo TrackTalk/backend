@@ -94,7 +94,7 @@ router.get("/:postId/comments", async (req, res, next) => {
 router.post("/create", async (req, res, next) => {
     try {
         const newPostData = req.body;
-        if(!newPostData) res.status(400).json({error: "You must provide data to create a comment."});
+        if(!newPostData) return res.status(400).json({error: "You must provide data to create a comment."});
         const post = await Post.create(newPostData, {
             returning: true
         });
