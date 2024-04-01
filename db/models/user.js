@@ -23,7 +23,7 @@ const User = db.define("users", {
     },
     password: {
         type: DataTypes.STRING,  
-        allowNull: false,
+        allowNull: true,
     },
     profilePicUrl: {
         type: DataTypes.TEXT,
@@ -45,6 +45,14 @@ const User = db.define("users", {
             model: Track,
             key: "trackId"
         }
+    },
+    accessToken: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    refreshToken: {
+        type: DataTypes.TEXT, 
+        allowNull: true, 
     },
     spotifyProfileId: {
         type: DataTypes.STRING,
