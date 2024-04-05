@@ -11,8 +11,60 @@ const REDIRECT_URI = 'http://localhost:8000/api/auth/callback';
 
 //the root is localhost:8000/api/auth
 
+router.post("/login", async (req, res, next) => {
+    try{
+        const loginAttempt = req.body;
+        if(!loginAttempt) return res.status(400).send('Login information missing');
+        let loginStatus;
+        const foundUser = await User.findOne({
+            where: {
+                userName: loginAttempt.userName,
+            }
+        });
+        if(foundUser){
+            if(await encrypt(loginAttempt.password) === foundUser.password){
+                const {password, ...userWithoutPassword} = foundUser.toJSON();
+                loginStatus = {
+                    loginSuccess: true,
+                    foundUser: userWithoutPassword,
+                }
+                res.status(200).json(loginStatus);
+            } else {
+                res.status(401).send("Username or password wrong");
+            }
+        } else {
+            res.status(401).send("Username or password wrong");
+        }
+    } catch (error) {
+        next(error);
+    }
+});
 
-router.get("/register/spotify", async (req, res) => {
+
+router.post("/register", async (req, res, next) => {
+    try{
+        const newUserData = req.body;
+        if(!newUserData) return res.status(400).send('New user data missing');
+
+        newUserData.password = encrypt(newUserData.password);
+
+        const newUser = await User.create(newUserData, {
+            returning: true,
+        })
+
+        if(!newUser){
+            res.status(200).json(newUser);
+        } else {
+            res.status(400).send(`Failed to create a new User`);
+        }
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+router.get("/spotify", async (req, res) => {
     try {
         const authorizationUrl = `https://accounts.spotify.com/authorize?${querystring.stringify({
             response_type: 'code',
@@ -29,7 +81,7 @@ router.get("/register/spotify", async (req, res) => {
 });
 
 
-router.get("/register/spotify/callback", async (req, res) => {
+router.get("/callback", async (req, res) => {
     try {
         const {code} = req.query;
         const response = await axios.post('https://accounts.spotify.com/api/token', querystring.stringify({
@@ -46,6 +98,8 @@ router.get("/register/spotify/callback", async (req, res) => {
         if(response) {
             const accessToken = response.data.access_token;
             const refreshToken = response.data.refresh_token;
+            const accessTokenEncrypted = encrypt(accessToken);
+            const refreshTokenEncrypted = encrypt(refreshToken);
 
             const userProfileResponse = await axios.get('http://api.spotify.com/v1/me', {
                 headers: {
@@ -53,15 +107,12 @@ router.get("/register/spotify/callback", async (req, res) => {
                 }
             });
 
-            const userFound = await User.findOne({
+            let userFound = await User.findOne({
                 where: {
                     spotifyProfileId: userProfileResponse.data.id
                 }
             });
             if(!userFound) {
-                const accessTokenEncrypted = encrypt(accessToken);
-                const refreshTokenEncrypted = encrypt(refreshToken);
-
                 console.log(refreshTokenEncrypted);
 
                 const userCreated = await User.create({
@@ -77,12 +128,19 @@ router.get("/register/spotify/callback", async (req, res) => {
                     
                 });
 
-                res.status(200).json({
-                    userProfile: userProfileResponse.data,
-                    accessToken: accessTokenEncrypted,
-                    refreshToken: refreshTokenEncrypted
-                });
+                if(userCreated){
+                    res.status(200).json(userCreated);
+                } else {
+                    res.status(400).send("The new use is not created")
+                };
                 
+            } else {
+                const userUpdated = await userFound.update({ accessToken: accessTokenEncrypted });
+                if(userUpdated) {
+                    res.status(200).json(userUpdated);
+                } else {
+                    res.status(400).send("The user is found but cannot be updated.")
+                }
             }
         } else
         res.status(400).send("Error on response");
@@ -91,7 +149,7 @@ router.get("/register/spotify/callback", async (req, res) => {
         console.error('Error initiating Spotify authentication:', error.message);
         res.status(500).json({ error: 'An error occurred during authentication' });
     }
-})
+});
 
 
 module.exports = router;

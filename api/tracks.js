@@ -36,7 +36,7 @@ router.get("/:trackId", async (req, res, next) => {
 
 router.post("/create", async (req, res, next) => {
     try {
-        const {newTrackData} = req.body 
+        const newTrackData = req.body 
         if(!newTrackData) return res.status(400).send('New track data missing');
 
         const newTrack = await Track.create(newTrackData, {
