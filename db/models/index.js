@@ -8,26 +8,26 @@ const Post = require("./post");
 const Track = require("./track");
 const User = require("./user");
 
-// User.hasMany(Post);
+User.hasMany(Post, {foreignKey: "userId"});
 Post.belongsTo(User, {foreignKey: "userId"});
 
-// Track.hasMany(Post);
+Track.hasMany(Post, {foreignKey: "trackId"});
 Post.belongsTo(Track, {foreignKey: "trackId"});
 
-// Post.hasMany(Comment);
+Post.hasMany(Comment, {foreignKey: "postId"});
 Comment.belongsTo(Post, {foreignKey: "postId"});
 
-// User.hasMany(Comment);
+User.hasMany(Comment, {foreignKey: "userId"});
 Comment.belongsTo(User, {foreignKey: "userId"});
 
-// Conversation.hasMany(Message);
+Conversation.hasMany(Message, {foreignKey: "conversationId"});
 Message.belongsTo(Conversation, {foreignKey:  "conversationId"});
 
-// User.hasMany(Message);
+User.hasMany(Message, {foreignKey: "userId"});
 Message.belongsTo(User, {foreignKey: "userId"});
 
-// User.belongsTo(Track, {foreignKey: " currentlyListeningId"});
-Track.hasMany(User, { foreignKey: 'currentlyListeningId' });
+User.belongsTo(Track, {foreignKey: "currentlyListeningId"});
+Track.hasMany(User, { foreignKey: "currentlyListeningId" });
 
 User.belongsToMany(Post, { through: Like, foreignKey: "userId", otherKey: "postId"});
 Post.belongsToMany(User, { through: Like, foreignKey: "postId", otherKey: "userId"});

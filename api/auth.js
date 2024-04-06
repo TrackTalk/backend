@@ -1,4 +1,6 @@
 require("dotenv").config();
+// import generateTokenAndSetCookie from "../utils/generateJWT";
+const { generateTokenAndSetCookie } = require("../utils/generateJWT");
 const router = require("express").Router();
 const {User} = require("../db/models");
 const {encrypt, decrypt} = require("../encryption/encryption");
@@ -28,12 +30,12 @@ router.post("/login", async (req, res, next) => {
                     loginSuccess: true,
                     foundUser: userWithoutPassword,
                 }
-                res.status(200).json(loginStatus);
+                return res.status(200).json(loginStatus);
             } else {
-                res.status(401).send("Username or password wrong");
+                return res.status(401).send("Username or password wrong");
             }
         } else {
-            res.status(401).send("Username or password wrong");
+            return res.status(401).send("Username or password wrong");
         }
     } catch (error) {
         next(error);
@@ -52,10 +54,11 @@ router.post("/register", async (req, res, next) => {
             returning: true,
         })
 
-        if(!newUser){
-            res.status(200).json(newUser);
+        if(newUser){
+            await generateTokenAndSetCookie(newUser.id, res)
+            return res.status(200).json(newUser);
         } else {
-            res.status(400).send(`Failed to create a new User`);
+            return res.status(400).send(`Failed to create a new User`);
         }
 
     } catch (error) {
@@ -63,6 +66,17 @@ router.post("/register", async (req, res, next) => {
     }
 });
 
+router.get("/logout", (req, res, next) => {
+    try {
+        res.cookie("jwt", "", {
+            maxAge: 0
+        });
+        res.status(200).send("Logged out successfully");
+        
+    } catch (error) {
+        next(error);
+    }
+});
 
 router.get("/spotify", async (req, res) => {
     try {
@@ -72,8 +86,7 @@ router.get("/spotify", async (req, res) => {
             scope: 'user-read-email',
             redirect_uri: REDIRECT_URI
         })}`;
-        console.log(REDIRECT_URI);
-        res.redirect(authorizationUrl);
+        await res.redirect(authorizationUrl);
     } catch (error) {
         console.error('Error initiating Spotify authentication:', error.message);
         // res.status(500).json({ error: 'An error occurred while initiating authentication' });
@@ -84,16 +97,20 @@ router.get("/spotify", async (req, res) => {
 router.get("/callback", async (req, res) => {
     try {
         const {code} = req.query;
+        console.log("here is ok")
         const response = await axios.post('https://accounts.spotify.com/api/token', querystring.stringify({
+            client_id: CLIENT_ID,
             grant_type: 'authorization_code', 
             code: code,
             redirect_uri: REDIRECT_URI,
         }), {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                Authorization: `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`
-            }
+                Authorization: 'Basic ' + (new Buffer.from(CLIENT_ID + ':' + CLIENT_SECRET).toString('base64'))
+            },
+            json: true
         });
+        
 
         if(response) {
             const accessToken = response.data.access_token;
@@ -105,16 +122,15 @@ router.get("/callback", async (req, res) => {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
-            });
+            }); 
 
             let userFound = await User.findOne({
                 where: {
                     spotifyProfileId: userProfileResponse.data.id
                 }
             });
-            if(!userFound) {
-                console.log(refreshTokenEncrypted);
 
+            if(!userFound) {
                 const userCreated = await User.create({
                     userName: `${userProfileResponse.data.email.split("@")[0]}@spotify`,
                     email: userProfileResponse.data.email || '',
@@ -129,22 +145,31 @@ router.get("/callback", async (req, res) => {
                 });
 
                 if(userCreated){
-                    res.status(200).json(userCreated);
+                    await generateTokenAndSetCookie(userCreated.id, res)
+                    return res.status(200).json(userCreated);
                 } else {
-                    res.status(400).send("The new use is not created")
+                    return res.status(400).send("The new user is not created")
                 };
                 
             } else {
                 const userUpdated = await userFound.update({ accessToken: accessTokenEncrypted });
                 if(userUpdated) {
-                    res.status(200).json(userUpdated);
+                    const {password, ...userWithoutPassword} = userUpdated.toJSON();
+                    const loginStatus = {
+                        loginSuccess: true,
+                        foundUser: userWithoutPassword,
+
+                    }
+                    // set the cookie and send back the user data
+                    await generateTokenAndSetCookie(userFound.id, res);
+                    return res.status(200).json(loginStatus);
                 } else {
-                    res.status(400).send("The user is found but cannot be updated.")
+                    return res.status(400).send("The user is found but cannot be updated.")
                 }
             }
-        } else
-        res.status(400).send("Error on response");
-        
+        } else {
+            return res.status(400).send("Error on response");
+        }
     } catch (error){
         console.error('Error initiating Spotify authentication:', error.message);
         res.status(500).json({ error: 'An error occurred during authentication' });

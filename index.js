@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const db = require(`./db`);
 const PORT = 8000;
 
@@ -12,6 +13,7 @@ const setupMiddleWare = (app) => {
     );
     app.use(express.json());
     app.use(express.urlencoded({extended: false}));
+    app.use(cookieParser());
 };
 
 const syncDB = () => db.sync().then(()=>{console.log("Resync DB")});
