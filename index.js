@@ -8,6 +8,7 @@ const PORT = 8000;
 const setupMiddleWare = (app) => {
     app.use(
         cors({
+            origin: 'http://localhost:3000',
             credentials: true
         })
     );

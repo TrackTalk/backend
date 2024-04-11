@@ -19,6 +19,66 @@ router.get("/", async (req, res, next) => {
     }
 });
 
+router.get("/username/:userName", async (req, res, next) => {
+    try {
+        const {userName} = req.params;
+        if(!userName) return res.status(400).send('Missing username parameter');
+
+        const userData = await User.findOne({
+            where: {
+                userName: userName
+            }
+        });
+        if(userData) {
+            res.status(200).json(userData);
+        } else {
+            res.status(404).send(`No user with the username of ${userName}`);
+        }
+    } catch (error) {
+        next(error);
+    }
+})
+
+router.get("/username/found/:userName/", async (req, res, next) => {
+    try {
+        const {userName} = req.params;
+        if(!userName) return res.status(400).send('Missing username parameter');
+
+        const userData = await User.findOne({
+            where: {
+                userName: userName
+            }
+        });
+        if(userData) {
+            res.status(200).json({found: true});
+        } else {
+            res.status(200).json({found: false});
+        }
+    } catch (error) {
+        next(error);
+    }
+})
+
+router.get("/email/found/:email/", async (req, res, next) => {
+    try {
+        const {email} = req.params;
+        if(!email) return res.status(400).send('Missing email parameter');
+
+        const userData = await User.findOne({
+            where: {
+                email: email
+            }
+        });
+        if(userData) {
+            res.status(200).json({found: true});
+        } else {
+            res.status(200).json({found: false});
+        }
+    } catch (error) {
+        next(error);
+    }
+})
+
 router.get("/:userId", async (req, res, next) => {
     try {
         const {userId} = req.params;
