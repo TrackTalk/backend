@@ -38,6 +38,9 @@ Post.belongsToMany(User, { through: Like, foreignKey: "postId", otherKey: "userI
 User.belongsToMany(User, { as: "user1Id", through: Conversation, foreignKey: "user1Id", otherKey: "user2Id"});
 User.belongsToMany(User, { as: "user2Id", through: Conversation, foreignKey: "user2Id", otherKey: "user1Id"});
 
+Conversation.belongsTo(User, { foreignKey: 'user1Id', as: 'user1' });
+Conversation.belongsTo(User, { foreignKey: 'user2Id', as: 'user2' });
+
 User.belongsToMany(User, { as: "followerId", through: Follow, foreignKey: "followerId", otherKey: "followingId"});
 User.belongsToMany(User, { as: "followingId", through: Follow, foreignKey: "followingId", otherKey: "followerId"});
 

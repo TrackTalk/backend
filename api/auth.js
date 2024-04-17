@@ -29,13 +29,15 @@ router.post("/login", async (req, res, next) => {
             // console.log(encrypt("1234"))
             // console.log(encrypt("1234"))
             const passwordCheck = await bcrypt.compare(loginAttempt.password, foundUser?.password || "")
-            console.log(passwordCheck);
+            console.log("passwordCheck" + passwordCheck)
             if(passwordCheck){
                 const {password, ...userWithoutPassword} = foundUser.toJSON();
                 loginStatus = {
                     loginSuccess: true,
                     foundUser: userWithoutPassword,
                 }
+                console.log(foundUser);
+                await generateTokenAndSetCookie(foundUser.userId, res)
                 return res.status(200).json(loginStatus);
             } else {
                 return res.status(401).send("Username or password wrong");
@@ -56,7 +58,6 @@ router.post("/register", async (req, res, next) => {
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newUserData.password, salt);
-        console.log(hashedPassword)
         if(hashedPassword) newUserData.password = hashedPassword;
 
         const newUser = await User.create(newUserData, {
@@ -64,9 +65,13 @@ router.post("/register", async (req, res, next) => {
         })
 
         if(newUser){
-            await generateTokenAndSetCookie(newUser.id, res)
+            await generateTokenAndSetCookie(newUser.userId, res)
             const {password, ...userWithoutPassword} = newUser.toJSON();
-            return res.status(200).json(userWithoutPassword);
+            const loginStatus = {
+                loginSuccess: true,
+                foundUser: userWithoutPassword,
+            }
+            return res.status(200).json(loginStatus);
         } else {
             return res.status(400).send(`Failed to create a new User`);
         }
@@ -109,7 +114,6 @@ router.get("/callback", async (req, res) => {
         let frontendRedirectURL = "";
         let loginStatus;
         const {code} = req.query;
-        console.log("here is ok")
         const response = await axios.post('https://accounts.spotify.com/api/token', querystring.stringify({
             client_id: CLIENT_ID,
             grant_type: 'authorization_code', 
@@ -168,16 +172,16 @@ router.get("/callback", async (req, res) => {
                 };
                 
             } else {
-                const userUpdated = await userFound.update({ accessToken: accessTokenEncrypted });
-                if(userUpdated) {
-                    const {password, ...userWithoutPassword} = userUpdated.toJSON();
+                
+                if(userFound) {
+                    const {password, ...userWithoutPassword} = userFound.toJSON();
                     loginStatus = {
                         loginSuccess: true,
                         foundUser: userWithoutPassword,
 
                     }
                     // set the cookie and send back the user data
-                    await generateTokenAndSetCookie(userFound.id, res);
+                    await generateTokenAndSetCookie(userFound.dataValues.userId, res);
                     frontendRedirectURL = `${FRONTEND_URL}/callback?loginStatus=${encodeURIComponent(JSON.stringify(loginStatus))}`
 
                     return res.redirect(frontendRedirectURL)
