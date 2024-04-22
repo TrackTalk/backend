@@ -2,7 +2,8 @@ const router = require("express").Router();
 const { Message, Conversation, User } = require("../db/models");
 const { checkJWT } = require("../middleware/checkJWT");
 const { Op } = require("sequelize");
-
+const {getReceiverSocketId, io} = require('../socket/socket');
+// console.log(getReceiverSocketId(16));
 //root is localhost:8000/api/messages
 
 router.post("/send/:userId", checkJWT, async (req, res, next) => {
@@ -32,7 +33,15 @@ router.post("/send/:userId", checkJWT, async (req, res, next) => {
             conversationId: conversation.conversationId
 
         });
+        
+        const receiverSocketId = getReceiverSocketId(user2Id);
+        if(receiverSocketId && newMessage){
+            console.log("new message emitted to socket")
+            io.to(receiverSocketId).emit("newMessage", newMessage)
+        }
 
+
+        console.log(receiverSocketId, " this is receiver socket id")
         res.status(201).json(newMessage);
 
     } catch (error) {
@@ -65,7 +74,6 @@ router.get("/get/:userId", checkJWT, async (req, res, next) => {
 
 router.get("/all", checkJWT, async (req, res, next) => {
     try {
-        console.log(req.userData)
         const userId = parseInt(req.userData.userId);
         if (!userId) return res.status(403).send("Unauthorized User");
         const conversations = await Conversation.findAll({

@@ -3,6 +3,11 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const db = require(`./db`);
+const { Server } = require('socket.io')
+const http = require('http');
+const setupSocket = require ("./socket/socket")
+const {app, server} = require("./socket/socket")
+
 // const { checkJWT } = require("./middleware/checkJWT");
 const PORT = 8000;
 
@@ -14,12 +19,12 @@ const setupMiddleWare = (app) => {
         })
     );
     app.use(express.json());
-    app.use(express.urlencoded({extended: false}));
+    app.use(express.urlencoded({ extended: false }));
     app.use(cookieParser());
     // app.use(checkJWT);
 };
 
-const syncDB = () => db.sync().then(()=>{console.log("Resync DB")});
+const syncDB = () => db.sync().then(() => { console.log("Resync DB") });
 
 const setupRoutes = (app) => {
     app.use("/api", require("./api"));
@@ -28,18 +33,27 @@ const setupRoutes = (app) => {
     });
 };
 
-const configureApp = () => {
-    const app = express();
-    syncDB();
-    setupMiddleWare(app);
-    setupRoutes(app);
-    console.log("here");
 
-    app.listen(PORT, () => {
+syncDB();
+setupMiddleWare(app);
+setupRoutes(app);
+
+server.listen(PORT, () => {
         console.log(`Live on port: ${PORT}`);
-      });
+});
+// const configureApp = () => {
+//     // const { app ,server, io, getReceiverSocketId} = setupSocket(app);
+//     const {app, server} = require("./socket/socket")
+//     syncDB();
+//     setupMiddleWare(app);
+//     setupRoutes(app);
+//     console.log("here");
 
-    return app;
-}
+//     server.listen(PORT, () => {
+//         console.log(`Live on port: ${PORT}`);
+//     });
 
-module.exports = configureApp();
+//     return {app, io, getReceiverSocketId};
+// }
+
+// module.exports = configureApp();

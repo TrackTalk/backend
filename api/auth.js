@@ -29,14 +29,13 @@ router.post("/login", async (req, res, next) => {
             // console.log(encrypt("1234"))
             // console.log(encrypt("1234"))
             const passwordCheck = await bcrypt.compare(loginAttempt.password, foundUser?.password || "")
-            console.log("passwordCheck" + passwordCheck)
+
             if(passwordCheck){
                 const {password, ...userWithoutPassword} = foundUser.toJSON();
                 loginStatus = {
                     loginSuccess: true,
                     foundUser: userWithoutPassword,
                 }
-                console.log(foundUser);
                 await generateTokenAndSetCookie(foundUser.userId, res)
                 return res.status(200).json(loginStatus);
             } else {
