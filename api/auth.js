@@ -2,11 +2,12 @@ require("dotenv").config();
 // import generateTokenAndSetCookie from "../utils/generateJWT";
 const { generateTokenAndSetCookie } = require("../utils/generateJWT");
 const router = require("express").Router();
-const {User} = require("../db/models");
-const {encrypt, decrypt} = require("../encryption/encryption");
+const { User } = require("../db/models");
+const { encrypt, decrypt } = require("../encryption/encryption");
 const querystring = require("querystring");
-const axios = require ("axios");
-const bcrypt  = require('bcrypt'); 
+const axios = require("axios");
+const bcrypt = require('bcrypt');
+const { checkJWT } = require("../middleware/checkJWT");
 
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
@@ -16,22 +17,22 @@ const FRONTEND_URL = process.env.FRONTEND_URL;
 //the root is localhost:8000/api/auth
 
 router.post("/login", async (req, res, next) => {
-    try{
+    try {
         const loginAttempt = req.body;
-        if(!loginAttempt) return res.status(400).send('Login information missing');
+        if (!loginAttempt) return res.status(400).send('Login information missing');
         let loginStatus;
         const foundUser = await User.findOne({
             where: {
                 userName: loginAttempt.userName,
             }
         });
-        if(foundUser){
+        if (foundUser) {
             // console.log(encrypt("1234"))
             // console.log(encrypt("1234"))
             const passwordCheck = await bcrypt.compare(loginAttempt.password, foundUser?.password || "")
 
-            if(passwordCheck){
-                const {password, ...userWithoutPassword} = foundUser.toJSON();
+            if (passwordCheck) {
+                const { password, ...userWithoutPassword } = foundUser.toJSON();
                 loginStatus = {
                     loginSuccess: true,
                     foundUser: userWithoutPassword,
@@ -51,21 +52,21 @@ router.post("/login", async (req, res, next) => {
 
 
 router.post("/register", async (req, res, next) => {
-    try{
+    try {
         const newUserData = req.body;
-        if(!newUserData) return res.status(400).send('New user data missing');
+        if (!newUserData) return res.status(400).send('New user data missing');
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newUserData.password, salt);
-        if(hashedPassword) newUserData.password = hashedPassword;
+        if (hashedPassword) newUserData.password = hashedPassword;
 
         const newUser = await User.create(newUserData, {
             returning: true,
         })
 
-        if(newUser){
+        if (newUser) {
             await generateTokenAndSetCookie(newUser.userId, res)
-            const {password, ...userWithoutPassword} = newUser.toJSON();
+            const { password, ...userWithoutPassword } = newUser.toJSON();
             const loginStatus = {
                 loginSuccess: true,
                 foundUser: userWithoutPassword,
@@ -86,7 +87,7 @@ router.get("/logout", (req, res, next) => {
             maxAge: 0
         });
         res.status(200).send("Logged out successfully");
-        
+
     } catch (error) {
         next(error);
     }
@@ -97,7 +98,9 @@ router.get("/spotify", async (req, res) => {
         const authorizationUrl = `https://accounts.spotify.com/authorize?${querystring.stringify({
             response_type: 'code',
             client_id: CLIENT_ID,
-            scope: 'user-read-email',
+            scope: 'streaming \
+            user-read-email \
+            user-read-private',
             redirect_uri: REDIRECT_URI
         })}`;
         await res.redirect(authorizationUrl);
@@ -112,10 +115,10 @@ router.get("/callback", async (req, res) => {
     try {
         let frontendRedirectURL = "";
         let loginStatus;
-        const {code} = req.query;
+        const { code } = req.query;
         const response = await axios.post('https://accounts.spotify.com/api/token', querystring.stringify({
             client_id: CLIENT_ID,
-            grant_type: 'authorization_code', 
+            grant_type: 'authorization_code',
             code: code,
             redirect_uri: REDIRECT_URI,
         }), {
@@ -125,17 +128,19 @@ router.get("/callback", async (req, res) => {
             },
             json: true
         });
-        
 
-        if(response) {
+
+        if (response) {
             const accessToken = response.data.access_token;
             const refreshToken = response.data.refresh_token;
+
+            console.log("Check accessToken: ", accessToken)
 
             const userProfileResponse = await axios.get('http://api.spotify.com/v1/me', {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`
                 }
-            }); 
+            });
 
             let userFound = await User.findOne({
                 where: {
@@ -143,7 +148,7 @@ router.get("/callback", async (req, res) => {
                 }
             });
 
-            if(!userFound) {
+            if (!userFound) {
                 const userCreated = await User.create({
                     userName: `${userProfileResponse.data.email.split("@")[0]}@spotify`,
                     email: userProfileResponse.data.email || '',
@@ -154,12 +159,12 @@ router.get("/callback", async (req, res) => {
                     accessToken: accessToken,
                     refreshToken: refreshToken,
                     spotifyProfileId: userProfileResponse.data.id,
-                    
+
                 });
 
-                if(userCreated){
+                if (userCreated) {
                     await generateTokenAndSetCookie(userCreated.id, res)
-                    const {password, ...userWithoutPassword} = userCreated.toJSON();
+                    const { password, ...userWithoutPassword } = userCreated.toJSON();
                     loginStatus = {
                         loginSuccess: true,
                         foundUser: userWithoutPassword,
@@ -169,11 +174,12 @@ router.get("/callback", async (req, res) => {
                 } else {
                     return res.status(400).send("The new user is not created")
                 };
-                
+
             } else {
-                
-                if(userFound) {
-                    const {password, ...userWithoutPassword} = userFound.toJSON();
+
+                if (userFound) {
+                    userFound.accessToken = accessToken;
+                    const { password, ...userWithoutPassword } = userFound.toJSON();
                     loginStatus = {
                         loginSuccess: true,
                         foundUser: userWithoutPassword,
@@ -191,11 +197,45 @@ router.get("/callback", async (req, res) => {
         } else {
             return res.status(400).send("Error on response");
         }
-    } catch (error){
+    } catch (error) {
         console.error('Error initiating Spotify authentication:', error.message);
         res.status(500).json({ error: 'An error occurred during authentication' });
     }
 });
+
+router.get("/refreshToken", checkJWT, async (req, res, next) => {
+    try {
+        if (req.userData.spotifyLogin == false) {
+            return res.status(401).send("You are not logged in with spotify.");
+        }
+        const refreshToken = req.userData.refreshToken;
+        console.log(refreshToken);
+        const response = await fetch("https://accounts.spotify.com/api/token", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": `Basic ${Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64")}`,
+            },
+            body: `grant_type=refresh_token&refresh_token=${refreshToken}`,
+            cache: "no-cache"
+        })
+        const check = await response.json();
+
+        if (response.ok) {
+            const newAccessToken = check.access_token;
+            console.log(newAccessToken)
+            const updatedUser = await User.update({
+                accessToken: newAccessToken
+            }, {
+                where: {userId: req.userData.userId},
+            })
+            if(updatedUser)
+                res.status(201).json(newAccessToken);
+        }
+    } catch (error) {
+        next(error);
+    }
+})
 
 
 module.exports = router;
