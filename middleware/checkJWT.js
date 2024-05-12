@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const {User} = require("../db/models")
 const checkJWT = async (req, res, next) => {
     try {
-
+        
         const token = req.cookies.jwt;
         if(!token){
 
@@ -20,6 +20,7 @@ const checkJWT = async (req, res, next) => {
         if(user){
             const {password, ...userWithoutPassword} = user;
             req.userData = userWithoutPassword.dataValues;
+            
             next();
         } else {
             return res.status(404).send("User not found 1 .");

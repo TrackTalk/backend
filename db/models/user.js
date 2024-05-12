@@ -29,6 +29,10 @@ const User = db.define("users", {
         type: DataTypes.TEXT,
         allowNull: true,
     },
+    coverPicUrl: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     spotifyLogin: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
