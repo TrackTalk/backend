@@ -5,10 +5,15 @@ const {Track} = require("../db/models");
 
 router.get("/", async (req, res, next) => {
     try {
-        const allTracks = await Track.findAll();
+        const allTracks = await Track.findAll({
+            limit: 10,
+            order: [["createdAt", "DESC"]] //sort by most recent first
+        });
+
+        const totalCount = await Track.count();
 
         if(allTracks) {
-            res.status(200).json(allTracks);
+            res.status(200).json({totalCount, tracks: allTracks});
         } else {
             res.status(404).send('No tracks found');
         }
@@ -38,6 +43,14 @@ router.post("/create", async (req, res, next) => {
     try {
         const newTrackData = req.body 
         if(!newTrackData) return res.status(400).send('New track data missing');
+
+        const foundTrack = await Track.findOne({
+            where: {
+                spotifyId: newTrackData.spotifyId
+            }
+        })
+        
+        if(foundTrack) return res.status(201).json(foundTrack);
 
         const newTrack = await Track.create(newTrackData, {
             returning: true,

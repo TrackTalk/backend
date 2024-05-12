@@ -10,8 +10,9 @@ router.post("/send/:userId", checkJWT, async (req, res, next) => {
     try {
         const user1Id = parseInt(req.userData.userId);
         const user2Id = parseInt(req.params.userId);
+        let newConversation = false;
         const { text } = req.body;
-
+        
         let conversation = await Conversation.findOne({
             where: {
                 [Op.or]: [
@@ -22,10 +23,13 @@ router.post("/send/:userId", checkJWT, async (req, res, next) => {
             include: Message
         });
         if (!conversation) {
+            
             conversation = await Conversation.create({
                 user1Id,
-                user2Id
+                user2Id,
+                participants: [user1Id, user2Id]
             });
+            newConversation = true;
         }
         const newMessage = await Message.create({
             userId: user1Id,
@@ -33,6 +37,12 @@ router.post("/send/:userId", checkJWT, async (req, res, next) => {
             conversationId: conversation.conversationId
 
         });
+
+        const response = {
+            newMessage,
+            newConversation
+        }
+
         
         const receiverSocketId = getReceiverSocketId(user2Id);
         if(receiverSocketId && newMessage){
@@ -42,7 +52,7 @@ router.post("/send/:userId", checkJWT, async (req, res, next) => {
 
 
         console.log(receiverSocketId, " this is receiver socket id")
-        res.status(201).json(newMessage);
+        res.status(201).json(response);
 
     } catch (error) {
         next(error);
@@ -62,10 +72,26 @@ router.get("/get/:userId", checkJWT, async (req, res, next) => {
                     { participants: [user2Id, user1Id] }
                 ]
             },
-            include: Message
+            include: [
+                {
+                    model: Message,
+                    as: 'messages'
+                },
+                {
+                    model: User,
+                    as: 'user1',
+                    attributes: { exclude: [ "password" ]}
+                },
+                {
+                    model: User,
+                    as: 'user2',
+                    attributes: { exclude: [ "password" ]}
+                }
+            ]
         });
+        console.log(conversation);
         if (!conversation) return res.status(404).send("No such conversation found");
-        res.status(200).json(conversation.messages);
+        res.status(200).json(conversation);
 
     } catch (error) {
         next(error);
@@ -86,7 +112,7 @@ router.get("/all", checkJWT, async (req, res, next) => {
             include: [
                 {
                     model: Message,
-                    as: 'messages'
+                    as: 'messages',
                 },
                 {
                     model: User,

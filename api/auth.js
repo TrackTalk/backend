@@ -100,7 +100,13 @@ router.get("/spotify", async (req, res) => {
             client_id: CLIENT_ID,
             scope: 'streaming \
             user-read-email \
-            user-read-private',
+            user-read-private \
+            user-read-playback-state \
+            user-modify-playback-state \
+            user-modify-playback-state \
+            user-library-read \
+            user-library-modify \
+            user-top-read',
             redirect_uri: REDIRECT_URI
         })}`;
         await res.redirect(authorizationUrl);
@@ -134,7 +140,6 @@ router.get("/callback", async (req, res) => {
             const accessToken = response.data.access_token;
             const refreshToken = response.data.refresh_token;
 
-            console.log("Check accessToken: ", accessToken)
 
             const userProfileResponse = await axios.get('http://api.spotify.com/v1/me', {
                 headers: {
@@ -154,7 +159,7 @@ router.get("/callback", async (req, res) => {
                     email: userProfileResponse.data.email || '',
                     firstName: userProfileResponse.data.display_name.split(" ")[0],
                     lastName: userProfileResponse.data.display_name.split(" ").pop(),
-                    profilePicUrl: userProfileResponse.data.images[0].url,
+                    profilePicUrl: userProfileResponse.data.images[1].url,
                     spotifyLogin: true,
                     accessToken: accessToken,
                     refreshToken: refreshToken,
@@ -179,6 +184,7 @@ router.get("/callback", async (req, res) => {
 
                 if (userFound) {
                     userFound.accessToken = accessToken;
+                    userFound.refreshToken = refreshToken;
                     const { password, ...userWithoutPassword } = userFound.toJSON();
                     loginStatus = {
                         loginSuccess: true,
@@ -209,7 +215,6 @@ router.get("/refreshToken", checkJWT, async (req, res, next) => {
             return res.status(401).send("You are not logged in with spotify.");
         }
         const refreshToken = req.userData.refreshToken;
-        console.log(refreshToken);
         const response = await fetch("https://accounts.spotify.com/api/token", {
             method: "POST",
             headers: {
@@ -223,7 +228,6 @@ router.get("/refreshToken", checkJWT, async (req, res, next) => {
 
         if (response.ok) {
             const newAccessToken = check.access_token;
-            console.log(newAccessToken)
             const updatedUser = await User.update({
                 accessToken: newAccessToken
             }, {

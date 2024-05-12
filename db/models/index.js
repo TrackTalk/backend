@@ -47,6 +47,7 @@ User.belongsToMany(User, { as: "followingId", through: Follow, foreignKey: "foll
 Follow.belongsTo(User, {foreignKey: "followerId", as: "followers"});
 Follow.belongsTo(User, {foreignKey: "followingId", as: "followings"});
 
+
 module.exports = {
     Comment,
     Conversation,
