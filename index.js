@@ -14,7 +14,7 @@ const PORT = 8000;
 const setupMiddleWare = (app) => {
     app.use(
         cors({
-            origin: 'http://localhost:3000',
+            origin: 'https://tracktalk-frontend.vercel.app',
             methods: ['GET', 'POST', 'PUT', 'DELETE'],
             allowedHeaders: ['Content-Type', 'Authorization'],
             credentials: true,

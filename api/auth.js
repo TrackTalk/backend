@@ -177,6 +177,7 @@ router.get("/callback", async (req, res) => {
                         foundUser: userWithoutPassword,
                     }
                     frontendRedirectURL = `${FRONTEND_URL}/callback?loginStatus=${encodeURIComponent(JSON.stringify(loginStatus))}`
+                    console.log(frontendRedirectURL);
                     return res.redirect(frontendRedirectURL);
                 } else {
                     return res.status(400).send("The new user is not created")
