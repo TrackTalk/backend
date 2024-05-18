@@ -1,9 +1,13 @@
 const jwt = require("jsonwebtoken");
 const {User} = require("../db/models")
+
 const checkJWT = async (req, res, next) => {
+    console.log("here in checkJWT")
     try {
         
+        console.log("this is cookies",req.cookies)
         const token = req.cookies.jwt;
+        console.log("this is token ",token);
         if(!token){
 
             return res.status(401).send("Unauthorized : No token provided.");
@@ -16,10 +20,12 @@ const checkJWT = async (req, res, next) => {
         }
 
         const user = await User.findByPk(decoded.userId);
+        console.log(user)
           
         if(user){
             const {password, ...userWithoutPassword} = user;
             req.userData = userWithoutPassword.dataValues;
+            
             
             next();
         } else {

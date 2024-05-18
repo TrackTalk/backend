@@ -126,6 +126,7 @@ router.get("/all", checkJWT, async (req, res, next) => {
                 }
             ]
         });
+        console.log("here")
         if (!conversations) return res.status(404).send("Conversations not Found");
         res.status(200).json(conversations);
     } catch (error) {

@@ -13,6 +13,7 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = `${process.env.BACKEND_URL}/api/auth/callback`;
 const FRONTEND_URL = process.env.FRONTEND_URL;
+console.log("in auth",FRONTEND_URL);
 
 //the root is localhost:8000/api/auth
 
@@ -37,6 +38,7 @@ router.post("/login", async (req, res, next) => {
                     loginSuccess: true,
                     foundUser: userWithoutPassword,
                 }
+                console.log("found user userId", foundUser.userId)
                 await generateTokenAndSetCookie(foundUser.userId, res)
                 return res.status(200).json(loginStatus);
             } else {

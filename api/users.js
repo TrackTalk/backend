@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { User, Follow, Track } = require("../db/models");
+console.log("here");
 
 //root is localhost:8000/api/users
 
